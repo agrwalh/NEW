@@ -12,6 +12,7 @@ import {
   ClipboardType,
   Pill,
   ShoppingCart,
+  BrainCircuit,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -33,11 +34,12 @@ import SkinLesionAnalyzer from './skin-lesion-analyzer';
 import PrescriptionGenerator from './prescription-generator';
 import MedicineInfo from './medicine-info';
 import Pharmacy from './pharmacy';
+import MentalHealthCompanion from './mental-health-companion';
 
-type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info' | 'pharmacy';
+type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info' | 'pharmacy' | 'mental-health';
 
 export function AppShell() {
-  const [activeView, setActiveView] = React.useState<View>('pharmacy');
+  const [activeView, setActiveView] = React.useState<View>('symptoms');
 
   const renderContent = () => {
     switch (activeView) {
@@ -57,6 +59,8 @@ export function AppShell() {
         return <MedicineInfo />;
       case 'pharmacy':
         return <Pharmacy />;
+      case 'mental-health':
+        return <MentalHealthCompanion />;
       default:
         return <SymptomAnalyzer />;
     }
@@ -75,6 +79,26 @@ export function AppShell() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView('ai-doctor')}
+                isActive={activeView === 'ai-doctor'}
+                tooltip="AI Doctor"
+              >
+                <MessageCircle />
+                <span>AI Doctor</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView('mental-health')}
+                isActive={activeView === 'mental-health'}
+                tooltip="Mental Health Companion"
+              >
+                <BrainCircuit />
+                <span>Mental Health</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => setActiveView('symptoms')}
@@ -145,16 +169,6 @@ export function AppShell() {
                 <span>Health Resources</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setActiveView('ai-doctor')}
-                isActive={activeView === 'ai-doctor'}
-                tooltip="AI Doctor"
-              >
-                <MessageCircle />
-                <span>AI Doctor</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
@@ -174,6 +188,7 @@ export function AppShell() {
               {activeView === 'pharmacy' && 'Pharmacy'}
               {activeView === 'resources' && 'Health Resources'}
               {activeView === 'ai-doctor' && 'AI Doctor'}
+              {activeView === 'mental-health' && 'Mental Health Companion'}
             </h1>
            </div>
         </header>

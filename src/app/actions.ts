@@ -13,6 +13,8 @@ import { generatePrescription } from '@/ai/flows/prescription-generator';
 import type { PrescriptionGeneratorInput, PrescriptionGeneratorOutput } from '@/ai/flows/prescription-generator';
 import { getMedicineInfo } from '@/ai/flows/medicine-info';
 import type { MedicineInfoOutput } from '@/ai/flows/medicine-info';
+import { talkToCompanion } from '@/ai/flows/mental-health-agent';
+import type { MentalHealthAgentOutput } from '@/ai/flows/mental-health-agent';
 
 
 export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: SymptomAnalyzerOutput; error?: string }> {
@@ -88,5 +90,18 @@ export async function getMedicineInfoAction(medicineName: string): Promise<{ dat
   } catch (e) {
     console.error(e);
     return { error: 'An unexpected error occurred while fetching medicine information. Please try again later.' };
+  }
+}
+
+export async function talkToCompanionAction(prompt: string, history: string[]): Promise<{ data?: MentalHealthAgentOutput; error?: string }> {
+  if (!prompt || prompt.trim().length === 0) {
+    return { error: 'Please say something.' };
+  }
+  try {
+    const result = await talkToCompanion({ prompt, history });
+    return { data: result };
+  } catch (e) {
+    console.error(e);
+    return { error: 'An unexpected error occurred. Please try again later.' };
   }
 }
