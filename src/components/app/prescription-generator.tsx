@@ -5,7 +5,10 @@ import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { ClipboardType, Loader2, User, HeartPulse, ShieldAlert } from 'lucide-react';
+import { ClipboardType, Loader2, User, HeartPulse, ShieldAlert, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +43,7 @@ export default function PrescriptionGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [result, setResult] = React.useState<PrescriptionGeneratorOutput | null>(null);
+  const prescriptionRef = React.useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -67,6 +71,40 @@ export default function PrescriptionGenerator() {
     }
     setResult(resultData || null);
   }
+
+  const handleDownloadPdf = () => {
+    const input = prescriptionRef.current;
+    if (input) {
+        // Temporarily remove download button from capture
+        const downloadButton = input.querySelector('#download-button');
+        const originalDisplay = downloadButton?.parentElement?.style.display;
+        if(downloadButton?.parentElement) {
+            downloadButton.parentElement.style.display = 'none';
+        }
+        
+        html2canvas(input, { scale: 2, backgroundColor: null }).then((canvas) => {
+            // Restore download button
+            if(downloadButton?.parentElement && originalDisplay) {
+                downloadButton.parentElement.style.display = originalDisplay;
+            }
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight);
+            const imgWidth = (canvasWidth * ratio) * 0.95; // add some padding
+            const imgHeight = (canvasHeight * ratio) * 0.95;
+            const x = (pdfWidth - imgWidth) / 2;
+            const y = (pdfHeight - imgHeight) / 2;
+
+            pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+            pdf.save(`prescription-${result?.patientName?.replace(/\s/g, '_') || 'sample'}.pdf`);
+        });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -174,80 +212,90 @@ export default function PrescriptionGenerator() {
 
       {result && (
         <Card className="animate-in fade-in">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 font-headline">
-              <ClipboardType className="h-7 w-7 text-primary" />
-              <span>Sample Prescription</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-                <div className="flex justify-between rounded-lg border p-4">
-                    <div>
-                        <h3 className="font-bold">{result.patientName}</h3>
-                        <p className="text-sm text-muted-foreground">Age: {result.age}</p>
-                        <p className="text-sm text-muted-foreground">Gender: {result.gender}</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-sm font-medium">Dr. AI Assistant</p>
-                        <p className="text-sm text-muted-foreground">MediChat Digital Clinic</p>
-                        <p className="text-sm text-muted-foreground">Date: {result.date}</p>
-                    </div>
+          <div ref={prescriptionRef}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-3 font-headline">
+                <div className="flex items-center gap-3">
+                  <ClipboardType className="h-7 w-7 text-primary" />
+                  <span>Sample Prescription</span>
                 </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                  <div className="flex justify-between rounded-lg border p-4">
+                      <div>
+                          <h3 className="font-bold">{result.patientName}</h3>
+                          <p className="text-sm text-muted-foreground">Age: {result.age}</p>
+                          <p className="text-sm text-muted-foreground">Gender: {result.gender}</p>
+                      </div>
+                      <div className="text-right">
+                          <p className="text-sm font-medium">Dr. AI Assistant</p>
+                          <p className="text-sm text-muted-foreground">MediChat Digital Clinic</p>
+                          <p className="text-sm text-muted-foreground">Date: {result.date}</p>
+                      </div>
+                  </div>
 
-                <div className="space-y-2">
-                    <h3 className="font-semibold flex items-center gap-2">
-                        <HeartPulse className="h-5 w-5 text-primary" />
-                        Diagnosis
-                    </h3>
-                    <p className="text-sm text-foreground">{result.diagnosis}</p>
-                </div>
+                  <div className="space-y-2">
+                      <h3 className="font-semibold flex items-center gap-2">
+                          <HeartPulse className="h-5 w-5 text-primary" />
+                          Diagnosis
+                      </h3>
+                      <p className="text-sm text-foreground">{result.diagnosis}</p>
+                  </div>
 
-                <Separator />
-                
-                <div className="space-y-2">
-                    <h3 className="font-semibold">Rx (Medication)</h3>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Medicine</TableHead>
-                                <TableHead>Dosage</TableHead>
-                                <TableHead>Frequency</TableHead>
-                                <TableHead>Duration</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {result.medicines.map((med, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">{med.name}</TableCell>
-                                    <TableCell>{med.dosage}</TableCell>
-                                    <TableCell>{med.frequency}</TableCell>
-                                    <TableCell>{med.duration}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                    <h3 className="font-semibold">Precautions & Advice</h3>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-foreground">
-                       {result.precautions.map((p, i) => <li key={i}>{p}</li>)}
-                    </ul>
-                </div>
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                      <h3 className="font-semibold">Rx (Medication)</h3>
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Medicine</TableHead>
+                                  <TableHead>Dosage</TableHead>
+                                  <TableHead>Frequency</TableHead>
+                                  <TableHead>Duration</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {result.medicines.map((med, index) => (
+                                  <TableRow key={index}>
+                                      <TableCell className="font-medium">{med.name}</TableCell>
+                                      <TableCell>{med.dosage}</TableCell>
+                                      <TableCell>{med.frequency}</TableCell>
+                                      <TableCell>{med.duration}</TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                      <h3 className="font-semibold">Precautions & Advice</h3>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-foreground">
+                         {result.precautions.map((p, i) => <li key={i}>{p}</li>)}
+                      </ul>
+                  </div>
 
-                <Separator />
+                  <Separator />
 
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-                    <h4 className="font-bold flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5"/>
-                        Important Disclaimer
-                    </h4>
-                    <p className="text-sm mt-2">{result.disclaimer}</p>
-                </div>
-            </div>
+                  <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+                      <h4 className="font-bold flex items-center gap-2">
+                          <ShieldAlert className="h-5 w-5"/>
+                          Important Disclaimer
+                      </h4>
+                      <p className="text-sm mt-2">{result.disclaimer}</p>
+                  </div>
+              </div>
+            </CardContent>
+          </div>
+          <CardContent className="pt-6">
+            <Button id="download-button" onClick={handleDownloadPdf} className="w-full bg-accent hover:bg-accent/90">
+                <Download className="mr-2 h-4 w-4" />
+                Download as PDF
+            </Button>
           </CardContent>
         </Card>
       )}
