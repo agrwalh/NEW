@@ -5,7 +5,7 @@ import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { ClipboardType, Loader2, User, HeartPulse, ShieldAlert, Download } from 'lucide-react';
+import { ClipboardType, Loader2, User, HeartPulse, ShieldAlert, Download, ShoppingCart } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -255,6 +255,7 @@ export default function PrescriptionGenerator() {
                                   <TableHead>Dosage</TableHead>
                                   <TableHead>Frequency</TableHead>
                                   <TableHead>Duration</TableHead>
+                                  <TableHead className="text-right">Action</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -264,6 +265,16 @@ export default function PrescriptionGenerator() {
                                       <TableCell>{med.dosage}</TableCell>
                                       <TableCell>{med.frequency}</TableCell>
                                       <TableCell>{med.duration}</TableCell>
+                                      <TableCell className="text-right">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => window.open(`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(med.name)}`, '_blank')}
+                                        >
+                                            <ShoppingCart className="h-4 w-4 mr-2" />
+                                            Buy Now
+                                        </Button>
+                                      </TableCell>
                                   </TableRow>
                               ))}
                           </TableBody>

@@ -11,6 +11,7 @@ import {
   ScanSearch,
   ClipboardType,
   Pill,
+  ShoppingCart,
 } from 'lucide-react';
 import {
   SidebarProvider,
