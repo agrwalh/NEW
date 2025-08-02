@@ -5,7 +5,7 @@ import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Lightbulb, Loader2 } from 'lucide-react';
+import { Lightbulb, Loader2, ShieldAlert } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,10 +18,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { analyzeSymptomsAction } from '@/app/actions';
 import type { SymptomAnalyzerOutput } from '@/ai/flows/symptom-analyzer';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const FormSchema = z.object({
   symptoms: z.string().min(10, {
@@ -57,6 +59,21 @@ export default function SymptomAnalyzer() {
     }
     setResult(resultData || null);
   }
+
+  const getUrgencyBadgeVariant = (urgency: SymptomAnalyzerOutput['urgency']) => {
+    switch (urgency) {
+      case 'Low':
+        return 'default';
+      case 'Medium':
+        return 'secondary';
+      case 'High':
+        return 'destructive';
+      case 'Immediate':
+        return 'destructive';
+      default:
+        return 'default';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -101,13 +118,13 @@ export default function SymptomAnalyzer() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Lightbulb className="h-6 w-6 text-primary"/>
-                    <span>Potential Causes</span>
+                    <span>Analyzing Potential Causes...</span>
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="h-4 w-3/4 animate-pulse rounded-md bg-muted"></div>
-                <div className="h-4 w-1/2 animate-pulse rounded-md bg-muted"></div>
-                <div className="h-4 w-5/6 animate-pulse rounded-md bg-muted"></div>
+                <div className="h-20 w-full animate-pulse rounded-md bg-muted"></div>
+                <div className="h-20 w-full animate-pulse rounded-md bg-muted"></div>
+                <div className="h-20 w-full animate-pulse rounded-md bg-muted"></div>
             </CardContent>
          </Card>
       )}
@@ -115,18 +132,39 @@ export default function SymptomAnalyzer() {
       {result && (
         <Card className="animate-in fade-in">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-headline">
-              <Lightbulb className="h-6 w-6 text-primary" />
-              Potential Causes
+            <CardTitle className="flex items-center justify-between gap-2 font-headline">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="h-6 w-6 text-primary" />
+                <span>Analysis Report</span>
+              </div>
+              <Badge variant={getUrgencyBadgeVariant(result.urgency)}>Urgency: {result.urgency}</Badge>
             </CardTitle>
+            <CardDescription className="flex items-start gap-2 pt-2 text-sm">
+                <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{result.disclaimer}</span>
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-                Based on the symptoms you provided, here are some potential causes. This is not a medical diagnosis. Please consult a healthcare professional for advice.
-            </p>
-            <div className="prose prose-sm max-w-none rounded-md border bg-muted/50 p-4">
-               <pre className="whitespace-pre-wrap bg-transparent p-0 font-body text-foreground">{result.potentialCauses}</pre>
-            </div>
+          <CardContent className="space-y-4">
+            {result.analysis.map((item, index) => (
+                <Card key={index} className="bg-muted/50">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex justify-between items-start font-headline">
+                            {item.condition}
+                            <Badge variant={item.severity === 'Critical' || item.severity === 'Severe' ? 'destructive' : 'secondary'} className="capitalize">{item.severity}</Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <h3 className="font-semibold mb-1">Description</h3>
+                            <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                         <div>
+                            <h3 className="font-semibold mb-1">Next Steps</h3>
+                            <p className="text-sm text-muted-foreground">{item.nextSteps}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
           </CardContent>
         </Card>
       )}
