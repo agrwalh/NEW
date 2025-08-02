@@ -8,6 +8,7 @@ import {
   FileText,
   BookOpen,
   PanelLeft,
+  MessageCircle,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -24,8 +25,9 @@ import { Button } from '@/components/ui/button';
 import SymptomAnalyzer from '@/components/app/symptom-analyzer';
 import MedicalSummarizer from '@/components/app/medical-summarizer';
 import HealthResources from '@/components/app/health-resources';
+import AiDoctor from '@/components/app/ai-doctor';
 
-type View = 'symptoms' | 'summarizer' | 'resources';
+type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor';
 
 export function AppShell() {
   const [activeView, setActiveView] = React.useState<View>('symptoms');
@@ -38,6 +40,8 @@ export function AppShell() {
         return <MedicalSummarizer />;
       case 'resources':
         return <HealthResources />;
+      case 'ai-doctor':
+        return <AiDoctor />;
       default:
         return <SymptomAnalyzer />;
     }
@@ -86,6 +90,16 @@ export function AppShell() {
                 <span>Health Resources</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView('ai-doctor')}
+                isActive={activeView === 'ai-doctor'}
+                tooltip="AI Doctor"
+              >
+                <MessageCircle />
+                <span>AI Doctor</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
@@ -100,6 +114,7 @@ export function AppShell() {
               {activeView === 'symptoms' && 'Symptom Analyzer'}
               {activeView === 'summarizer' && 'Medical Summarizer'}
               {activeView === 'resources' && 'Health Resources'}
+              {activeView === 'ai-doctor' && 'AI Doctor'}
             </h1>
            </div>
         </header>

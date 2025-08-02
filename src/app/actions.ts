@@ -5,6 +5,9 @@ import { analyzeSymptoms } from '@/ai/flows/symptom-analyzer';
 import type { SymptomAnalyzerOutput } from '@/ai/flows/symptom-analyzer';
 import { medicalSummarizer } from '@/ai/flows/medical-summarizer';
 import type { MedicalSummarizerOutput } from '@/ai/flows/medical-summarizer';
+import { talkToDoctor } from '@/ai/flows/doctor-agent';
+import type { DoctorAgentOutput } from '@/ai/flows/doctor-agent';
+
 
 export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: SymptomAnalyzerOutput; error?: string }> {
   if (!symptoms || symptoms.trim().length < 10) {
@@ -30,5 +33,18 @@ export async function summarizeTopicAction(topic: string): Promise<{ data?: Medi
   } catch (e) {
     console.error(e);
     return { error: 'An unexpected error occurred while summarizing the topic. Please try again later.' };
+  }
+}
+
+export async function talkToDoctorAction(prompt: string): Promise<{ data?: DoctorAgentOutput; error?: string }> {
+  if (!prompt || prompt.trim().length === 0) {
+    return { error: 'Please say something to the doctor.' };
+  }
+  try {
+    const result = await talkToDoctor({ prompt });
+    return { data: result };
+  } catch (e) {
+    console.error(e);
+    return { error: 'An unexpected error occurred while talking to the doctor. Please try again later.' };
   }
 }
