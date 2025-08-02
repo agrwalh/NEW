@@ -49,7 +49,6 @@ export default function AiDoctor() {
     };
 
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
       let description = 'An error occurred during speech recognition.';
       if (event.error === 'network') {
         description = 'Network error. Please check your internet connection and try again.';
@@ -57,6 +56,8 @@ export default function AiDoctor() {
         description = 'Microphone access denied. Please allow microphone access in your browser settings.';
       } else if (event.error === 'no-speech') {
         description = 'No speech was detected. Please try again.';
+      } else {
+        console.error('Speech recognition error:', event.error);
       }
        toast({
         variant: 'destructive',
