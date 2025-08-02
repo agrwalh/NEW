@@ -7,6 +7,8 @@ import { medicalSummarizer } from '@/ai/flows/medical-summarizer';
 import type { MedicalSummarizerOutput } from '@/ai/flows/medical-summarizer';
 import { talkToDoctor } from '@/ai/flows/doctor-agent';
 import type { DoctorAgentOutput } from '@/ai/flows/doctor-agent';
+import { analyzeSkinLesion } from '@/ai/flows/skin-lesion-analyzer';
+import type { SkinLesionAnalyzerOutput } from '@/ai/flows/skin-lesion-analyzer';
 
 
 export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: SymptomAnalyzerOutput; error?: string }> {
@@ -46,5 +48,18 @@ export async function talkToDoctorAction(prompt: string): Promise<{ data?: Docto
   } catch (e) {
     console.error(e);
     return { error: 'An unexpected error occurred while talking to the doctor. Please try again later.' };
+  }
+}
+
+export async function analyzeSkinLesionAction(photoDataUri: string): Promise<{ data?: SkinLesionAnalyzerOutput; error?: string }> {
+  if (!photoDataUri) {
+    return { error: 'Please upload an image.' };
+  }
+  try {
+    const result = await analyzeSkinLesion({ photoDataUri });
+    return { data: result };
+  } catch (e) {
+    console.error(e);
+    return { error: 'An unexpected error occurred while analyzing the image. Please try again later.' };
   }
 }
