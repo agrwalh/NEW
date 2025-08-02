@@ -26,41 +26,13 @@ export async function medicalSummarizer(input: MedicalSummarizerInput): Promise<
   return medicalSummarizerFlow(input);
 }
 
-const getMedicalSummary = ai.defineTool(
-  {
-    name: 'getMedicalSummary',
-    description: 'Returns a summary of a given medical topic and links to source documents.',
-    inputSchema: z.object({
-      topic: z.string().describe('The medical topic to summarize.'),
-    }),
-    outputSchema: z.object({
-      summary: z.string().describe('A concise summary of the medical topic.'),
-      sourceLinks: z.array(z.string()).describe('Links to the original source documents.'),
-    }),
-  },
-  async (input) => {
-    // Placeholder for API call and data retrieval. Replace with actual implementation.
-    // Simulate an API call to an external medical information source.
-    const summary = `This is a simulated summary of the medical topic: ${input.topic}. Replace with actual data.`;
-    const sourceLinks = [
-      'https://www.example.com/source1',
-      'https://www.example.com/source2',
-    ];
-
-    return {summary, sourceLinks};
-  }
-);
-
 const summarizeMedicalTopicPrompt = ai.definePrompt({
   name: 'summarizeMedicalTopicPrompt',
-  tools: [getMedicalSummary],
   input: {schema: MedicalSummarizerInputSchema},
   output: {schema: MedicalSummarizerOutputSchema},
-  prompt: `Summarize the following medical topic and provide links to source documents:
+  prompt: `You are a helpful medical research assistant. Summarize the following medical topic and provide at least 2 links to reputable source documents.
 
-Topic: {{{topic}}}
-
-Use the getMedicalSummary tool to retrieve the summary and source links.`,
+Topic: {{{topic}}}`,
 });
 
 const medicalSummarizerFlow = ai.defineFlow(
@@ -71,6 +43,19 @@ const medicalSummarizerFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await summarizeMedicalTopicPrompt(input);
-    return output!;
+    if (!output) {
+        throw new Error("Unable to generate summary");
+    }
+    // Handle cases where no links are returned
+    if (!output.sourceLinks || output.sourceLinks.length === 0) {
+      return {
+        ...output,
+        sourceLinks: [
+          'https://www.mayoclinic.org/search/search-results?q=' + encodeURIComponent(input.topic),
+          'https://medlineplus.gov/search.html?query=' + encodeURIComponent(input.topic),
+        ]
+      }
+    }
+    return output;
   }
 );
