@@ -45,7 +45,7 @@ export default function PrescriptionGenerator() {
     resolver: zodResolver(FormSchema),
     defaultValues: {
         name: '',
-        age: undefined,
+        age: '' as any,
         gender: undefined,
         symptoms: '',
     },
