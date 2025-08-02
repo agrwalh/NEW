@@ -115,8 +115,17 @@ export default function AiDoctor() {
       recognitionRef.current?.stop();
       setIsRecording(false);
     } else {
-      recognitionRef.current?.start();
-      setIsRecording(true);
+      try {
+        recognitionRef.current?.start();
+        setIsRecording(true);
+      } catch (e: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Could not start recording',
+          description: 'Please ensure microphone permissions are granted and try again.',
+        });
+        setIsRecording(false);
+      }
     }
   };
 
