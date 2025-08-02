@@ -32,8 +32,9 @@ import AiDoctor from '@/components/app/ai-doctor';
 import SkinLesionAnalyzer from './skin-lesion-analyzer';
 import PrescriptionGenerator from './prescription-generator';
 import MedicineInfo from './medicine-info';
+import Pharmacy from './pharmacy';
 
-type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info';
+type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info' | 'pharmacy';
 
 export function AppShell() {
   const [activeView, setActiveView] = React.useState<View>('symptoms');
@@ -54,6 +55,8 @@ export function AppShell() {
         return <PrescriptionGenerator />;
       case 'medicine-info':
         return <MedicineInfo />;
+      case 'pharmacy':
+        return <Pharmacy />;
       default:
         return <SymptomAnalyzer />;
     }
@@ -122,6 +125,16 @@ export function AppShell() {
                 <span>Medicine Info</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView('pharmacy')}
+                isActive={activeView === 'pharmacy'}
+                tooltip="Pharmacy"
+              >
+                <ShoppingCart />
+                <span>Pharmacy</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => setActiveView('resources')}
@@ -158,6 +171,7 @@ export function AppShell() {
               {activeView === 'skin-lesion' && 'Skin Lesion Analyzer'}
               {activeView === 'prescription' && 'Prescription Generator'}
               {activeView === 'medicine-info' && 'Medicine Information'}
+              {activeView === 'pharmacy' && 'Pharmacy'}
               {activeView === 'resources' && 'Health Resources'}
               {activeView === 'ai-doctor' && 'AI Doctor'}
             </h1>
