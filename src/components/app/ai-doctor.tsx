@@ -2,14 +2,15 @@
 'use client';
 
 import * as React from 'react';
-import { Mic, MicOff, User, Bot, Loader2 } from 'lucide-react';
+import { Send, User, Bot, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { talkToDoctorAction } from '@/app/actions';
+import { Input } from '@/components/ui/input';
 
 interface Message {
   role: 'user' | 'doctor';
@@ -19,61 +20,18 @@ interface Message {
 
 export default function AiDoctor() {
   const { toast } = useToast();
-  const [isRecording, setIsRecording] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([]);
-  const recognitionRef = React.useRef<any>(null);
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
-  React.useEffect(() => {
-    // Check for browser support for Web Speech API
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({
-        variant: 'destructive',
-        title: 'Browser Not Supported',
-        description: 'Your browser does not support the Web Speech API for voice recognition.',
-      });
-      return;
-    }
-    
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setMessages((prev) => [...prev, { role: 'user', text: transcript }]);
-      handleUserMessage(transcript);
-    };
-
-    recognition.onerror = (event) => {
-      let description = 'An error occurred during speech recognition.';
-      if (event.error === 'network') {
-        description = 'Network error. Please check your internet connection and try again. Some browsers require an internet connection for speech recognition.';
-      } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        description = 'Microphone access denied. Please allow microphone access in your browser settings.';
-      } else if (event.error === 'no-speech') {
-        description = 'No speech was detected. Please try again.';
-      }
-       toast({
-        variant: 'destructive',
-        title: 'Recognition Error',
-        description: description,
-      });
-      setIsRecording(false);
-    };
-    
-    recognition.onend = () => {
-        setIsRecording(false);
-    }
-
-    recognitionRef.current = recognition;
-  }, [toast]);
-
   const handleUserMessage = async (text: string) => {
+    if (!text.trim()) return;
+
+    setMessages((prev) => [...prev, { role: 'user', text }]);
+    setInputValue('');
     setIsLoading(true);
+
     const { data, error } = await talkToDoctorAction(text);
     setIsLoading(false);
 
@@ -94,18 +52,11 @@ export default function AiDoctor() {
       }
     }
   };
-
-  const toggleRecording = () => {
-    if (!recognitionRef.current) return;
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      recognitionRef.current.start();
-      setIsRecording(true);
-    }
-  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleUserMessage(inputValue);
+  }
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto">
@@ -116,7 +67,7 @@ export default function AiDoctor() {
                         {messages.length === 0 && (
                             <div className="text-center text-muted-foreground pt-10">
                                 <Bot className="mx-auto h-12 w-12 mb-2" />
-                                <p>I am your AI Doctor. Press the microphone button to start speaking.</p>
+                                <p>I am your AI Doctor. Type your question below.</p>
                                 <p className="text-xs mt-2">I can provide general health information and precautions. I am not a real doctor and this is not medical advice.</p>
                             </div>
                         )}
@@ -149,16 +100,22 @@ export default function AiDoctor() {
                         )}
                     </div>
                 </ScrollArea>
-                <div className="flex justify-center items-center pt-4">
-                    <Button
-                        size="icon"
-                        className={cn("h-20 w-20 rounded-full", isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-accent hover:bg-accent/90")}
-                        onClick={toggleRecording}
+                <form onSubmit={handleSubmit} className="flex items-center gap-2 pt-4">
+                    <Input 
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder="Ask the AI Doctor a question..."
                         disabled={isLoading}
+                    />
+                    <Button
+                        type="submit"
+                        size="icon"
+                        className="bg-accent hover:bg-accent/90 shrink-0"
+                        disabled={isLoading || !inputValue.trim()}
                     >
-                        {isRecording ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+                        <Send className="h-5 w-5" />
                     </Button>
-                </div>
+                </form>
             </CardContent>
         </Card>
         <audio ref={audioRef} className="hidden" />
