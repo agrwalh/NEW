@@ -37,7 +37,7 @@ import Pharmacy from './pharmacy';
 type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info' | 'pharmacy';
 
 export function AppShell() {
-  const [activeView, setActiveView] = React.useState<View>('symptoms');
+  const [activeView, setActiveView] = React.useState<View>('pharmacy');
 
   const renderContent = () => {
     switch (activeView) {

@@ -18,9 +18,6 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    loader: 'default',
-    dangerouslyAllowSVG: true,
-    unoptimized: true, // This is required for static export
   },
 };
 

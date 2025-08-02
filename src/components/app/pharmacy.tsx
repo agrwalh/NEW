@@ -2,7 +2,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -76,20 +76,16 @@ export default function Pharmacy() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
                 <Card key={product.name} className="group flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader className="p-0">
-                        <div className="relative h-56 w-full">
-                            <Image
-                                src={product.image}
-                                alt={product.name}
-                                data-ai-hint={product.dataAiHint}
-                                layout="fill"
-                                objectFit="cover"
-                                className="transition-transform duration-300 group-hover:scale-105"
-                                unoptimized
-                            />
-                             <Badge className="absolute top-3 right-3" variant="secondary">{product.category}</Badge>
-                        </div>
-                    </CardHeader>
+                    <div className="relative aspect-square w-full">
+                        <Image
+                            src={product.image}
+                            alt={product.name}
+                            data-ai-hint={product.dataAiHint}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                         <Badge className="absolute top-3 right-3" variant="secondary">{product.category}</Badge>
+                    </div>
                     <CardContent className="flex flex-grow flex-col p-4">
                         <h3 className="font-headline text-lg font-semibold flex-grow">{product.name}</h3>
                         <div className="flex items-baseline justify-between mt-4">
