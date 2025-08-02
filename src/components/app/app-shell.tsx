@@ -10,6 +10,7 @@ import {
   MessageCircle,
   ScanSearch,
   ClipboardType,
+  Pill,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -29,8 +30,9 @@ import HealthResources from '@/components/app/health-resources';
 import AiDoctor from '@/components/app/ai-doctor';
 import SkinLesionAnalyzer from './skin-lesion-analyzer';
 import PrescriptionGenerator from './prescription-generator';
+import MedicineInfo from './medicine-info';
 
-type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription';
+type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info';
 
 export function AppShell() {
   const [activeView, setActiveView] = React.useState<View>('symptoms');
@@ -49,6 +51,8 @@ export function AppShell() {
         return <SkinLesionAnalyzer />;
       case 'prescription':
         return <PrescriptionGenerator />;
+      case 'medicine-info':
+        return <MedicineInfo />;
       default:
         return <SymptomAnalyzer />;
     }
@@ -109,6 +113,16 @@ export function AppShell() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
+                onClick={() => setActiveView('medicine-info')}
+                isActive={activeView === 'medicine-info'}
+                tooltip="Medicine Info"
+              >
+                <Pill />
+                <span>Medicine Info</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
                 onClick={() => setActiveView('resources')}
                 isActive={activeView === 'resources'}
                 tooltip="Health Resources"
@@ -142,6 +156,7 @@ export function AppShell() {
               {activeView === 'summarizer' && 'Medical Summarizer'}
               {activeView === 'skin-lesion' && 'Skin Lesion Analyzer'}
               {activeView === 'prescription' && 'Prescription Generator'}
+              {activeView === 'medicine-info' && 'Medicine Information'}
               {activeView === 'resources' && 'Health Resources'}
               {activeView === 'ai-doctor' && 'AI Doctor'}
             </h1>
