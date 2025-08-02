@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Send, User, Bot, Loader2 } from 'lucide-react';
+import { Send, User, Bot, Loader2, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +23,59 @@ export default function AiDoctor() {
   const [inputValue, setInputValue] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([]);
+  const [isRecording, setIsRecording] = React.useState(false);
+
   const audioRef = React.useRef<HTMLAudioElement>(null);
+  const recognitionRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        variant: 'destructive',
+        title: 'Unsupported Browser',
+        description: "Your browser doesn't support speech recognition. Please use Chrome or Safari.",
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      handleUserMessage(transcript);
+      setIsRecording(false);
+    };
+
+    recognition.onerror = (event: any) => {
+      let description = 'An error occurred during speech recognition.';
+      if (event.error === 'network') {
+        description = 'Network error. Please check your internet connection and try again.';
+      } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        description = "Microphone access denied. Please allow microphone access in your browser settings.";
+      } else if (event.error === 'no-speech') {
+        description = "No speech was detected. Please try again.";
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Recognition Error',
+        description: description,
+      });
+      setIsRecording(false);
+    };
+    
+    recognition.onend = () => {
+      setIsRecording(false);
+    }
+
+    recognitionRef.current = recognition;
+  }, [toast]);
+
 
   const handleUserMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -58,6 +110,16 @@ export default function AiDoctor() {
     handleUserMessage(inputValue);
   }
 
+  const handleMicClick = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsRecording(true);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto">
         <Card className="flex-grow flex flex-col">
@@ -67,7 +129,7 @@ export default function AiDoctor() {
                         {messages.length === 0 && (
                             <div className="text-center text-muted-foreground pt-10">
                                 <Bot className="mx-auto h-12 w-12 mb-2" />
-                                <p>I am your AI Doctor. Type your question below.</p>
+                                <p>I am your AI Doctor. Ask me a question.</p>
                                 <p className="text-xs mt-2">I can provide general health information and precautions. I am not a real doctor and this is not medical advice.</p>
                             </div>
                         )}
@@ -107,6 +169,15 @@ export default function AiDoctor() {
                         placeholder="Ask the AI Doctor a question..."
                         disabled={isLoading}
                     />
+                    <Button
+                        type="button"
+                        size="icon"
+                        onClick={handleMicClick}
+                        className={cn("shrink-0", isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-accent hover:bg-accent/90")}
+                        disabled={isLoading}
+                    >
+                        {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    </Button>
                     <Button
                         type="submit"
                         size="icon"
