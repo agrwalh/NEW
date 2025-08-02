@@ -9,6 +9,8 @@ import { talkToDoctor } from '@/ai/flows/doctor-agent';
 import type { DoctorAgentOutput } from '@/ai/flows/doctor-agent';
 import { analyzeSkinLesion } from '@/ai/flows/skin-lesion-analyzer';
 import type { SkinLesionAnalyzerOutput } from '@/ai/flows/skin-lesion-analyzer';
+import { generatePrescription } from '@/ai/flows/prescription-generator';
+import type { PrescriptionGeneratorInput, PrescriptionGeneratorOutput } from '@/ai/flows/prescription-generator';
 
 
 export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: SymptomAnalyzerOutput; error?: string }> {
@@ -61,5 +63,15 @@ export async function analyzeSkinLesionAction(photoDataUri: string): Promise<{ d
   } catch (e) {
     console.error(e);
     return { error: 'An unexpected error occurred while analyzing the image. Please try again later.' };
+  }
+}
+
+export async function generatePrescriptionAction(input: PrescriptionGeneratorInput): Promise<{ data?: PrescriptionGeneratorOutput; error?: string }> {
+  try {
+    const result = await generatePrescription(input);
+    return { data: result };
+  } catch (e) {
+    console.error(e);
+    return { error: 'An unexpected error occurred while generating the prescription. Please try again later.' };
   }
 }
