@@ -68,33 +68,37 @@ const products = [
 
 export default function Pharmacy() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
        <div className="text-center">
-            <h1 className="text-3xl font-bold font-headline">Pharmacy & Wellness</h1>
-            <p className="text-muted-foreground mt-2">Browse our selection of over-the-counter medicines and health products.</p>
+            <h1 className="text-3xl font-bold font-headline md:text-4xl">Pharmacy & Wellness</h1>
+            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Browse our curated selection of over-the-counter medicines and health products to support your well-being.</p>
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
-                <Card key={product.name} className="flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg">
+                <Card key={product.name} className="group flex flex-col overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
                     <CardHeader className="p-0">
-                        <div className="relative h-48 w-full">
+                        <div className="relative h-56 w-full">
                             <Image
                                 src={product.image}
                                 alt={product.name}
                                 data-ai-hint={product.dataAiHint}
                                 layout="fill"
                                 objectFit="cover"
+                                className="transition-transform duration-300 group-hover:scale-105"
+                                unoptimized
                             />
-                             <Badge className="absolute top-2 right-2" variant="secondary">{product.category}</Badge>
+                             <Badge className="absolute top-3 right-3" variant="secondary">{product.category}</Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="flex flex-grow flex-col p-4">
-                        <h3 className="font-headline text-lg font-semibold">{product.name}</h3>
-                        <p className="mt-2 flex-grow text-2xl font-bold text-primary">{product.price}</p>
-                        <Button className="mt-4 w-full bg-accent hover:bg-accent/90" onClick={() => alert('This is a demo. No actual purchase will be made.')}>
-                            <ShoppingCart className="mr-2 h-4 w-4" />
-                            Add to Cart
-                        </Button>
+                        <h3 className="font-headline text-lg font-semibold flex-grow">{product.name}</h3>
+                        <div className="flex items-baseline justify-between mt-4">
+                          <p className="text-2xl font-bold text-primary">{product.price}</p>
+                          <Button size="sm" className="bg-accent hover:bg-accent/90" onClick={() => alert('This is a demo. No actual purchase will be made.')}>
+                              <ShoppingCart className="mr-2 h-4 w-4" />
+                              Add to Cart
+                          </Button>
+                        </div>
                     </CardContent>
                 </Card>
             ))}
