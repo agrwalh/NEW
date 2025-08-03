@@ -12,12 +12,35 @@ import { cn } from '@/lib/utils';
 import { talkToCompanionAction } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { MentalHealthAgentOutput } from '@/ai/flows/mental-health-agent';
 
 interface Message {
   role: 'user' | 'companion';
   text: string;
 }
+
+interface Language {
+  code: string;
+  name: string;
+  flag: string;
+  voiceName?: string;
+}
+
+const languages: Language[] = [
+  { code: 'en-US', name: 'English', flag: '🇺🇸', voiceName: 'Samantha' },
+  { code: 'es-ES', name: 'Español', flag: '🇪🇸', voiceName: 'Monica' },
+  { code: 'fr-FR', name: 'Français', flag: '🇫🇷', voiceName: 'Amelie' },
+  { code: 'de-DE', name: 'Deutsch', flag: '🇩🇪', voiceName: 'Anna' },
+  { code: 'it-IT', name: 'Italiano', flag: '🇮🇹', voiceName: 'Alice' },
+  { code: 'pt-BR', name: 'Português', flag: '🇧🇷', voiceName: 'Luciana' },
+  { code: 'hi-IN', name: 'हिंदी', flag: '🇮🇳', voiceName: 'Neha' },
+  { code: 'ja-JP', name: '日本語', flag: '🇯🇵', voiceName: 'Kyoko' },
+  { code: 'ko-KR', name: '한국어', flag: '🇰🇷', voiceName: 'Yuna' },
+  { code: 'zh-CN', name: '中文', flag: '🇨🇳', voiceName: 'Ting-Ting' },
+  { code: 'ar-SA', name: 'العربية', flag: '🇸🇦', voiceName: 'Layla' },
+  { code: 'ru-RU', name: 'Русский', flag: '🇷🇺', voiceName: 'Milena' },
+];
 
 export default function MentalHealthCompanion() {
   const { toast } = useToast();
@@ -26,9 +49,22 @@ export default function MentalHealthCompanion() {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [mood, setMood] = React.useState<MentalHealthAgentOutput['mood'] | null>(null);
   const [speechEnabled, setSpeechEnabled] = React.useState(true);
+  const [selectedLanguage, setSelectedLanguage] = React.useState<Language>(languages[0]);
+  const [availableVoices, setAvailableVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const speechRef = React.useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Load available voices
+  React.useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
 
   React.useEffect(() => {
     if (scrollAreaRef.current) {
@@ -37,7 +73,7 @@ export default function MentalHealthCompanion() {
     }
   }, [messages]);
 
-  // Text-to-Speech function
+  // Text-to-Speech function with language support
   const speakText = (text: string) => {
     if (!speechEnabled || !window.speechSynthesis) return;
 
@@ -45,20 +81,36 @@ export default function MentalHealthCompanion() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9; // Slightly slower for better clarity
+    utterance.lang = selectedLanguage.code;
+    utterance.rate = 0.9;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
     
-    // Try to use a gentle voice for the mental health companion
-    const voices = window.speechSynthesis.getVoices();
-    const gentleVoice = voices.find(voice => 
-      voice.name.includes('Female') || 
-      voice.name.includes('Samantha') || 
-      voice.name.includes('Victoria') ||
-      voice.name.includes('Karen')
+    // Find the best voice for the selected language
+    const voices = availableVoices;
+    const languageVoices = voices.filter(voice => 
+      voice.lang.startsWith(selectedLanguage.code.split('-')[0])
     );
-    if (gentleVoice) {
-      utterance.voice = gentleVoice;
+    
+    if (languageVoices.length > 0) {
+      // Try to find a gentle voice for the selected language
+      const gentleVoice = languageVoices.find(voice => 
+        voice.name.includes('Female') || 
+        voice.name.includes('Samantha') || 
+        voice.name.includes('Monica') ||
+        voice.name.includes('Amelie') ||
+        voice.name.includes('Anna') ||
+        voice.name.includes('Alice') ||
+        voice.name.includes('Luciana') ||
+        voice.name.includes('Neha') ||
+        voice.name.includes('Kyoko') ||
+        voice.name.includes('Yuna') ||
+        voice.name.includes('Ting-Ting') ||
+        voice.name.includes('Layla') ||
+        voice.name.includes('Milena')
+      );
+      
+      utterance.voice = gentleVoice || languageVoices[0];
     }
 
     utterance.onerror = () => {
@@ -72,6 +124,18 @@ export default function MentalHealthCompanion() {
   const stopSpeaking = () => {
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
+    }
+  };
+
+  const handleLanguageChange = (languageCode: string) => {
+    const language = languages.find(lang => lang.code === languageCode);
+    if (language) {
+      setSelectedLanguage(language);
+      stopSpeaking();
+      toast({
+        title: 'Language Changed',
+        description: `Mental Health Companion will now respond in ${language.name}`,
+      });
     }
   };
 
@@ -97,7 +161,9 @@ export default function MentalHealthCompanion() {
 
     const history = messages.map(m => `${m.role}: ${m.text}`);
 
-    const { data, error } = await talkToCompanionAction(inputValue, history);
+    // Add language context to the AI request
+    const languageContext = `Please respond in ${selectedLanguage.name} (${selectedLanguage.code}). `;
+    const { data, error } = await talkToCompanionAction(languageContext + inputValue, history);
     setIsLoading(false);
 
     if (error) {
@@ -116,7 +182,7 @@ export default function MentalHealthCompanion() {
       setMessages((prev) => [...prev, companionMessage]);
       setMood(data.mood);
       
-      // Speak the companion response
+      // Speak the companion response in the selected language
       if (speechEnabled) {
         speakText(data.response);
       }
@@ -152,6 +218,26 @@ export default function MentalHealthCompanion() {
                             Mood: {mood}
                         </Badge>
                     )}
+                    <Select value={selectedLanguage.code} onValueChange={handleLanguageChange}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue>
+                                <div className="flex items-center gap-2">
+                                    <span>{selectedLanguage.flag}</span>
+                                    <span className="hidden sm:inline">{selectedLanguage.name}</span>
+                                </div>
+                            </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map((language) => (
+                                <SelectItem key={language.code} value={language.code}>
+                                    <div className="flex items-center gap-2">
+                                        <span>{language.flag}</span>
+                                        <span>{language.name}</span>
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Button
                         type="button"
                         size="icon"
@@ -175,6 +261,7 @@ export default function MentalHealthCompanion() {
                                 <BrainCircuit className="mx-auto h-12 w-12 mb-2" />
                                 <p>I'm here to listen.</p>
                                 <p className="text-xs mt-2">Share what's on your mind. This is a private and non-judgmental space.</p>
+                                <p className="text-xs mt-1">Select your preferred language above.</p>
                             </div>
                         )}
                         {messages.map((msg, index) => (
@@ -210,7 +297,7 @@ export default function MentalHealthCompanion() {
                     <Input 
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="How are you feeling today?"
+                        placeholder={`How are you feeling today in ${selectedLanguage.name}?`}
                         disabled={isLoading}
                     />
                     <Button
