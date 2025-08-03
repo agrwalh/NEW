@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Send, User, Bot, Loader2, Mic, MicOff } from 'lucide-react';
+import { Send, User, Bot, Loader2, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -24,9 +24,12 @@ export default function AiDoctor() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isRecording, setIsRecording] = React.useState(false);
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
+  const [speechEnabled, setSpeechEnabled] = React.useState(true);
 
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const recognitionRef = React.useRef<any>(null);
+  const speechRef = React.useRef<SpeechSynthesisUtterance | null>(null);
 
   React.useEffect(() => {
     // @ts-ignore
@@ -76,6 +79,43 @@ export default function AiDoctor() {
     recognitionRef.current = recognition;
   }, [toast]);
 
+  // Text-to-Speech function
+  const speakText = (text: string) => {
+    if (!speechEnabled || !window.speechSynthesis) return;
+
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9; // Slightly slower for better clarity
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    // Try to use a female voice for the AI doctor
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(voice => 
+      voice.name.includes('Female') || 
+      voice.name.includes('Samantha') || 
+      voice.name.includes('Victoria')
+    );
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
 
   const handleUserMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -98,6 +138,12 @@ export default function AiDoctor() {
 
     if (data) {
       setMessages((prev) => [...prev, { role: 'doctor', text: data.response, audioUrl: data.audioUrl }]);
+      
+      // Speak the AI response
+      if (speechEnabled) {
+        speakText(data.response);
+      }
+      
       if (data.audioUrl && audioRef.current) {
         audioRef.current.src = data.audioUrl;
         audioRef.current.play();
@@ -129,10 +175,37 @@ export default function AiDoctor() {
     }
   };
 
+  const toggleSpeech = () => {
+    if (speechEnabled) {
+      stopSpeaking();
+    }
+    setSpeechEnabled(!speechEnabled);
+    toast({
+      title: speechEnabled ? 'Speech Disabled' : 'Speech Enabled',
+      description: speechEnabled ? 'AI responses will no longer be spoken' : 'AI responses will now be spoken',
+    });
+  };
+
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto">
         <Card className="flex-grow flex flex-col">
             <CardContent className="flex-grow p-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">AI Doctor</h2>
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={toggleSpeech}
+                        className={cn(
+                            "shrink-0",
+                            speechEnabled ? "text-primary" : "text-muted-foreground"
+                        )}
+                        disabled={isLoading}
+                    >
+                        {speechEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                    </Button>
+                </div>
                 <ScrollArea className="flex-grow pr-4">
                     <div className="space-y-6">
                         {messages.length === 0 && (

@@ -58,39 +58,83 @@ Response format:
 - When to seek emergency care
 `;
 
-  const response = await googleAI.generateText({
-    model: 'gemini-1.5-flash',
-    prompt: prompt,
-    temperature: 0.3,
-    maxTokens: 2000
-  });
+  try {
+    const response = await googleAI.generateText({
+      model: 'gemini-1.5-flash',
+      prompt: prompt,
+      temperature: 0.3,
+      maxTokens: 2000
+    });
 
-  // Parse and structure the response
-  const aiResponse = response.text();
-  
-  // Extract structured data using regex patterns
-  const diagnosisMatch = aiResponse.match(/Possible Conditions:(.*?)(?=Recommendations:|$)/s);
-  const recommendationsMatch = aiResponse.match(/Recommendations:(.*?)(?=Risk Assessment:|$)/s);
-  const riskMatch = aiResponse.match(/Risk Assessment:(.*?)$/s);
+    // Parse and structure the response
+    const aiResponse = response.text();
+    
+    // Extract structured data using regex patterns
+    const diagnosisMatch = aiResponse.match(/Possible Conditions:(.*?)(?=Recommendations:|$)/s);
+    const recommendationsMatch = aiResponse.match(/Recommendations:(.*?)(?=Risk Assessment:|$)/s);
+    const riskMatch = aiResponse.match(/Risk Assessment:(.*?)$/s);
 
-  return {
-    response: aiResponse,
-    diagnosis: {
-      possibleConditions: diagnosisMatch ? diagnosisMatch[1].trim().split('\n').filter(Boolean) : [],
-      confidence: 0.85,
-      severity: userProfile?.severity || 'moderate',
-      urgency: riskMatch && riskMatch[1].includes('emergency') ? 'high' : 'normal'
-    },
-    recommendations: {
-      immediate: recommendationsMatch ? recommendationsMatch[1].trim().split('\n').filter(Boolean) : [],
-      lifestyle: [],
-      medications: [],
-      followUp: 'Schedule follow-up within 1 week if symptoms persist'
-    },
-    riskAssessment: {
-      riskLevel: riskMatch && riskMatch[1].includes('high') ? 'high' : 'low',
-      factors: [],
-      emergency: riskMatch && riskMatch[1].includes('emergency') || false
-    }
-  };
+    return {
+      response: aiResponse,
+      diagnosis: {
+        possibleConditions: diagnosisMatch ? diagnosisMatch[1].trim().split('\n').filter(Boolean) : [],
+        confidence: 0.85,
+        severity: userProfile?.severity || 'moderate',
+        urgency: riskMatch && riskMatch[1].includes('emergency') ? 'high' : 'normal'
+      },
+      recommendations: {
+        immediate: recommendationsMatch ? recommendationsMatch[1].trim().split('\n').filter(Boolean) : [],
+        lifestyle: [],
+        medications: [],
+        followUp: 'Schedule follow-up within 1 week if symptoms persist'
+      },
+      riskAssessment: {
+        riskLevel: riskMatch && riskMatch[1].includes('high') ? 'high' : 'low',
+        factors: [],
+        emergency: riskMatch && riskMatch[1].includes('emergency') || false
+      }
+    };
+  } catch (error) {
+    console.error('Google AI API Error:', error);
+    
+    // Fallback response when API is not available
+    return {
+      response: `Thank you for sharing your symptoms: "${userMessage}". 
+
+Based on your description, I can provide some general guidance, but please note that this is not a medical diagnosis and you should consult with a healthcare professional for proper evaluation.
+
+**General Recommendations:**
+- Monitor your symptoms and note any changes
+- Keep a symptom diary with timing and severity
+- Stay hydrated and get adequate rest
+- Avoid self-medication without professional advice
+
+**When to Seek Medical Attention:**
+- If symptoms worsen or persist for more than a few days
+- If you experience severe pain, fever, or other concerning symptoms
+- If symptoms interfere with daily activities
+
+**Next Steps:**
+Please schedule an appointment with your healthcare provider for a proper evaluation. They can provide a thorough assessment and appropriate treatment recommendations.
+
+Remember: This AI assistant is for informational purposes only and cannot replace professional medical advice.`,
+      diagnosis: {
+        possibleConditions: ['Requires professional evaluation'],
+        confidence: 0.5,
+        severity: 'moderate',
+        urgency: 'normal'
+      },
+      recommendations: {
+        immediate: ['Monitor symptoms', 'Stay hydrated', 'Get adequate rest'],
+        lifestyle: ['Maintain healthy habits', 'Avoid stress'],
+        medications: [],
+        followUp: 'Schedule appointment with healthcare provider'
+      },
+      riskAssessment: {
+        riskLevel: 'low',
+        factors: ['Self-reported symptoms'],
+        emergency: false
+      }
+    };
+  }
 }

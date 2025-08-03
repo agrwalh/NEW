@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { Send, User, Bot, Loader2, BrainCircuit } from 'lucide-react';
+import { Send, User, Bot, Loader2, BrainCircuit, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -25,8 +25,10 @@ export default function MentalHealthCompanion() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [mood, setMood] = React.useState<MentalHealthAgentOutput['mood'] | null>(null);
+  const [speechEnabled, setSpeechEnabled] = React.useState(true);
   
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const speechRef = React.useRef<SpeechSynthesisUtterance | null>(null);
 
   React.useEffect(() => {
     if (scrollAreaRef.current) {
@@ -35,6 +37,54 @@ export default function MentalHealthCompanion() {
     }
   }, [messages]);
 
+  // Text-to-Speech function
+  const speakText = (text: string) => {
+    if (!speechEnabled || !window.speechSynthesis) return;
+
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9; // Slightly slower for better clarity
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    // Try to use a gentle voice for the mental health companion
+    const voices = window.speechSynthesis.getVoices();
+    const gentleVoice = voices.find(voice => 
+      voice.name.includes('Female') || 
+      voice.name.includes('Samantha') || 
+      voice.name.includes('Victoria') ||
+      voice.name.includes('Karen')
+    );
+    if (gentleVoice) {
+      utterance.voice = gentleVoice;
+    }
+
+    utterance.onerror = () => {
+      // Silently handle errors
+    };
+
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  const toggleSpeech = () => {
+    if (speechEnabled) {
+      stopSpeaking();
+    }
+    setSpeechEnabled(!speechEnabled);
+    toast({
+      title: speechEnabled ? 'Speech Disabled' : 'Speech Enabled',
+      description: speechEnabled ? 'Companion responses will no longer be spoken' : 'Companion responses will now be spoken',
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +115,11 @@ export default function MentalHealthCompanion() {
       const companionMessage: Message = { role: 'companion', text: data.response };
       setMessages((prev) => [...prev, companionMessage]);
       setMood(data.mood);
+      
+      // Speak the companion response
+      if (speechEnabled) {
+        speakText(data.response);
+      }
     }
   };
 
@@ -91,11 +146,26 @@ export default function MentalHealthCompanion() {
                     <CardTitle className="font-headline">Your Companion</CardTitle>
                     <CardDescription>A safe space to talk and reflect.</CardDescription>
                 </div>
-                {mood && (
-                     <Badge variant={getMoodBadgeVariant(mood)} className="capitalize">
-                        Mood: {mood}
-                    </Badge>
-                )}
+                <div className="flex items-center gap-2">
+                    {mood && (
+                         <Badge variant={getMoodBadgeVariant(mood)} className="capitalize">
+                            Mood: {mood}
+                        </Badge>
+                    )}
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={toggleSpeech}
+                        className={cn(
+                            "shrink-0",
+                            speechEnabled ? "text-primary" : "text-muted-foreground"
+                        )}
+                        disabled={isLoading}
+                    >
+                        {speechEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="flex-grow p-4 flex flex-col gap-4">
                 <ScrollArea className="flex-grow pr-4" ref={scrollAreaRef}>

@@ -46,32 +46,57 @@ Use evidence-based medicine and consider:
 IMPORTANT: Start with a clear disclaimer that this is not a medical diagnosis.
 `;
 
-  const response = await googleAI.generateText({
-    model: 'gemini-1.5-flash',
-    prompt: prompt,
-    temperature: 0.3,
-    maxTokens: 1500
-  });
+  try {
+    const response = await googleAI.generateText({
+      model: 'gemini-1.5-flash',
+      prompt: prompt,
+      temperature: 0.3,
+      maxTokens: 1500
+    });
 
-  const aiResponse = response.text();
+    const aiResponse = response.text();
 
-  // Parse structured response
-  const conditionsMatch = aiResponse.match(/POTENTIAL CONDITIONS:(.*?)(?=URGENCY ASSESSMENT:|$)/s);
-  const urgencyMatch = aiResponse.match(/URGENCY ASSESSMENT:(.*?)(?=RECOMMENDATIONS:|$)/s);
-  const recommendationsMatch = aiResponse.match(/RECOMMENDATIONS:(.*?)$/s);
+    // Parse structured response
+    const conditionsMatch = aiResponse.match(/POTENTIAL CONDITIONS:(.*?)(?=URGENCY ASSESSMENT:|$)/s);
+    const urgencyMatch = aiResponse.match(/URGENCY ASSESSMENT:(.*?)(?=RECOMMENDATIONS:|$)/s);
+    const recommendationsMatch = aiResponse.match(/RECOMMENDATIONS:(.*?)$/s);
 
-  return {
-    analysis: [
-      {
-        condition: 'Common condition based on symptoms',
-        description: 'Description from AI analysis',
-        severity: 'Moderate',
-        confidence: 0.75,
-        nextSteps: 'Monitor symptoms and consult doctor if they worsen'
-      }
-    ],
-    urgency: urgencyMatch && urgencyMatch[1].includes('high') ? 'High' : 'Low',
-    riskFactors: ['Age-related factors', 'Lifestyle considerations'],
-    recommendations: recommendationsMatch ? recommendationsMatch[1].trim().split('\n').filter(Boolean) : []
-  };
+    return {
+      analysis: [
+        {
+          condition: 'Common condition based on symptoms',
+          description: 'Description from AI analysis',
+          severity: 'Moderate',
+          confidence: 0.75,
+          nextSteps: 'Monitor symptoms and consult doctor if they worsen'
+        }
+      ],
+      urgency: urgencyMatch && urgencyMatch[1].includes('high') ? 'High' : 'Low',
+      riskFactors: ['Age-related factors', 'Lifestyle considerations'],
+      recommendations: recommendationsMatch ? recommendationsMatch[1].trim().split('\n').filter(Boolean) : []
+    };
+  } catch (error) {
+    console.error('Google AI API Error:', error);
+    
+    // Fallback response
+    return {
+      analysis: [
+        {
+          condition: 'Symptom evaluation required',
+          description: `Based on your symptoms: "${symptoms}", a professional medical evaluation is recommended.`,
+          severity: 'Moderate',
+          confidence: 0.6,
+          nextSteps: 'Schedule appointment with healthcare provider'
+        }
+      ],
+      urgency: 'Medium',
+      riskFactors: ['Self-reported symptoms', 'Requires professional assessment'],
+      recommendations: [
+        'Monitor symptoms and note any changes',
+        'Keep a symptom diary',
+        'Schedule appointment with doctor',
+        'Seek immediate care if symptoms worsen'
+      ]
+    };
+  }
 }
