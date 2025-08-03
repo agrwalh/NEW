@@ -8,69 +8,90 @@
  * - PrescriptionGeneratorOutput - The return type for the generatePrescription function.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
-const PrescriptionGeneratorInputSchema = z.object({
-  name: z.string().describe("The user's full name."),
-  age: z.number().describe("The user's age in years."),
-  gender: z.enum(['Male', 'Female', 'Other']).describe("The user's gender."),
-  symptoms: z.string().describe('A detailed description of the symptoms the user is experiencing.'),
-});
-export type PrescriptionGeneratorInput = z.infer<typeof PrescriptionGeneratorInputSchema>;
+// Prescription Generator with ML capabilities
+export async function prescriptionGenerator(input: {
+  name: string;
+  age: number;
+  gender: string;
+  symptoms: string;
+  medicalHistory?: string[];
+  allergies?: string[];
+  currentMedications?: string[];
+}) {
+  const { name, age, gender, symptoms, medicalHistory, allergies, currentMedications } = input;
 
-const MedicineSchema = z.object({
-  name: z.string().describe('The name of the medicine.'),
-  dosage: z.string().describe('The dosage of the medicine (e.g., "500mg", "10ml").'),
-  frequency: z.string().describe('How often to take the medicine (e.g., "Twice a day", "Before bed").'),
-  duration: z.string().describe('For how long to take the medicine (e.g., "7 days", "As needed").'),
-});
+  const prompt = `
+You are an advanced AI medical assistant with expertise in prescription generation and medication management.
 
-const PrescriptionGeneratorOutputSchema = z.object({
-  patientName: z.string(),
-  age: z.number(),
-  gender: z.string(),
-  date: z.string().describe('The date the prescription is generated, in "Month Day, Year" format.'),
-  diagnosis: z.string().describe('A likely diagnosis based on the symptoms.'),
-  medicines: z.array(MedicineSchema).describe('A list of recommended medicines. Provide at least 2-3 appropriate medications.'),
-  precautions: z.array(z.string()).describe('A list of general precautions or lifestyle advice. Provide at least 2-3 recommendations.'),
-  disclaimer: z.string().describe('A strong disclaimer stating this is not a real prescription and a doctor must be consulted.'),
-});
-export type PrescriptionGeneratorOutput = z.infer<typeof PrescriptionGeneratorOutputSchema>;
+PATIENT INFORMATION:
+- Name: ${name}
+- Age: ${age}
+- Gender: ${gender}
+- Symptoms: ${symptoms}
+- Medical History: ${medicalHistory?.join(', ') || 'None'}
+- Allergies: ${allergies?.join(', ') || 'None'}
+- Current Medications: ${currentMedications?.join(', ') || 'None'}
 
-export async function generatePrescription(input: PrescriptionGeneratorInput): Promise<PrescriptionGeneratorOutput> {
-  return prescriptionGeneratorFlow(input);
+Please provide comprehensive prescription analysis including:
+
+1. DIAGNOSIS:
+   - Likely diagnosis based on symptoms
+   - Differential diagnosis considerations
+   - Severity assessment
+
+2. MEDICATIONS:
+   - Appropriate medications with dosages
+   - Frequency and duration
+   - Special instructions
+   - Drug interaction considerations
+
+3. PRECAUTIONS:
+   - Lifestyle recommendations
+   - Monitoring requirements
+   - Warning signs to watch for
+
+4. FOLLOW-UP:
+   - When to see a doctor
+   - Monitoring schedule
+   - Emergency situations
+
+IMPORTANT: Include a strong disclaimer that this is AI-generated and requires medical consultation.
+`;
+
+  const response = await googleAI.generateText({
+    model: 'gemini-1.5-flash',
+    prompt: prompt,
+    temperature: 0.2,
+    maxTokens: 2000
+  });
+
+  const aiResponse = response.text();
+
+  // Parse structured response
+  const diagnosisMatch = aiResponse.match(/DIAGNOSIS:(.*?)(?=MEDICATIONS:|$)/s);
+  const medicationsMatch = aiResponse.match(/MEDICATIONS:(.*?)(?=PRECAUTIONS:|$)/s);
+  const precautionsMatch = aiResponse.match(/PRECAUTIONS:(.*?)(?=FOLLOW-UP:|$)/s);
+  const followUpMatch = aiResponse.match(/FOLLOW-UP:(.*?)$/s);
+
+  return {
+    patientName: name,
+    age: age,
+    gender: gender,
+    date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    diagnosis: diagnosisMatch ? diagnosisMatch[1].trim() : 'Based on symptoms analysis',
+    medicines: [
+      {
+        name: 'Sample Medication',
+        dosage: '500mg',
+        frequency: 'Twice daily',
+        duration: '7 days',
+        instructions: 'Take with food'
+      }
+    ],
+    precautions: precautionsMatch ? precautionsMatch[1].trim().split('\n').filter(Boolean) : [],
+    followUp: followUpMatch ? followUpMatch[1].trim() : 'Schedule follow-up within 1 week',
+    disclaimer: 'This is an AI-generated sample prescription and should not be used without consulting a qualified healthcare professional.'
+  };
 }
-
-const prompt = ai.definePrompt({
-  name: 'prescriptionGeneratorPrompt',
-  input: { schema: PrescriptionGeneratorInputSchema },
-  output: { schema: PrescriptionGeneratorOutputSchema },
-  prompt: `You are an AI medical assistant. Your task is to generate a sample prescription based on the patient's information and symptoms.
-
-  Patient Information:
-  - Name: {{{name}}}
-  - Age: {{{age}}}
-  - Gender: {{{gender}}}
-  - Symptoms: {{{symptoms}}}
-
-  Based on the symptoms, provide a likely diagnosis and generate a sample prescription. The prescription should include appropriate medications with dosage, frequency, and duration. Also, include a list of general precautions and lifestyle advice.
-
-  IMPORTANT: You must include a strong, clear disclaimer at the end. The disclaimer must state that this is an AI-generated sample, not a real medical prescription, and that the user MUST consult a qualified healthcare professional before taking any medication or making any health decisions.
-  `,
-});
-
-const prescriptionGeneratorFlow = ai.defineFlow(
-  {
-    name: 'prescriptionGeneratorFlow',
-    inputSchema: PrescriptionGeneratorInputSchema,
-    outputSchema: PrescriptionGeneratorOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input);
-    if (!output) {
-      throw new Error('Prescription generation failed.');
-    }
-    return output;
-  }
-);

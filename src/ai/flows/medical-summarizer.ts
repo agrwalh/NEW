@@ -1,61 +1,62 @@
-// Medical summarizer flow
-'use server';
-/**
- * @fileOverview Summarizes medical topics using external API and provides source links.
- *
- * - medicalSummarizer - A function that summarizes medical topics.
- * - MedicalSummarizerInput - The input type for the medicalSummarizer function.
- * - MedicalSummarizerOutput - The return type for the medicalSummarizer function.
- */
+import { googleAI } from '@genkit-ai/googleai';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+// Medical Summarizer with ML capabilities
+export async function medicalSummarizer(input: { topic: string }) {
+  const { topic } = input;
 
-const MedicalSummarizerInputSchema = z.object({
-  topic: z.string().describe('The medical topic to summarize.'),
-});
-export type MedicalSummarizerInput = z.infer<typeof MedicalSummarizerInputSchema>;
+  const prompt = `
+You are an advanced AI medical research assistant with expertise in summarizing complex medical topics.
 
-const MedicalSummarizerOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the medical topic.'),
-  sourceLinks: z.array(z.string()).describe('Links to the original source documents.'),
-});
-export type MedicalSummarizerOutput = z.infer<typeof MedicalSummarizerOutputSchema>;
+TOPIC: ${topic}
 
-export async function medicalSummarizer(input: MedicalSummarizerInput): Promise<MedicalSummarizerOutput> {
-  return medicalSummarizerFlow(input);
+Please provide comprehensive analysis including:
+
+1. SUMMARY:
+   - Concise overview of the topic
+   - Key medical concepts explained
+   - Current understanding and research
+
+2. KEY POINTS:
+   - Important facts and findings
+   - Clinical significance
+   - Treatment approaches if applicable
+
+3. SOURCE LINKS:
+   - Reputable medical sources
+   - Research papers and studies
+   - Clinical guidelines
+
+4. RELATED TOPICS:
+   - Connected medical concepts
+   - Areas for further research
+   - Related conditions or treatments
+
+Use evidence-based medicine and provide accurate, up-to-date information.
+`;
+
+  const response = await googleAI.generateText({
+    model: 'gemini-1.5-flash',
+    prompt: prompt,
+    temperature: 0.3,
+    maxTokens: 1500
+  });
+
+  const aiResponse = response.text();
+
+  // Parse structured response
+  const summaryMatch = aiResponse.match(/SUMMARY:(.*?)(?=KEY POINTS:|$)/s);
+  const keyPointsMatch = aiResponse.match(/KEY POINTS:(.*?)(?=SOURCE LINKS:|$)/s);
+  const sourceLinksMatch = aiResponse.match(/SOURCE LINKS:(.*?)(?=RELATED TOPICS:|$)/s);
+  const relatedTopicsMatch = aiResponse.match(/RELATED TOPICS:(.*?)$/s);
+
+  return {
+    summary: summaryMatch ? summaryMatch[1].trim() : 'Summary of medical topic',
+    keyPoints: keyPointsMatch ? keyPointsMatch[1].trim().split('\n').filter(Boolean) : [],
+    sourceLinks: [
+      'https://www.mayoclinic.org/search/search-results?q=' + encodeURIComponent(topic),
+      'https://medlineplus.gov/search.html?query=' + encodeURIComponent(topic),
+      'https://www.ncbi.nlm.nih.gov/pubmed/?term=' + encodeURIComponent(topic)
+    ],
+    relatedTopics: relatedTopicsMatch ? relatedTopicsMatch[1].trim().split('\n').filter(Boolean) : []
+  };
 }
-
-const summarizeMedicalTopicPrompt = ai.definePrompt({
-  name: 'summarizeMedicalTopicPrompt',
-  input: {schema: MedicalSummarizerInputSchema},
-  output: {schema: MedicalSummarizerOutputSchema},
-  prompt: `You are a helpful medical research assistant. Summarize the following medical topic and provide at least 2 links to reputable source documents.
-
-Topic: {{{topic}}}`,
-});
-
-const medicalSummarizerFlow = ai.defineFlow(
-  {
-    name: 'medicalSummarizerFlow',
-    inputSchema: MedicalSummarizerInputSchema,
-    outputSchema: MedicalSummarizerOutputSchema,
-  },
-  async input => {
-    const {output} = await summarizeMedicalTopicPrompt(input);
-    if (!output) {
-        throw new Error("Unable to generate summary");
-    }
-    // Handle cases where no links are returned
-    if (!output.sourceLinks || output.sourceLinks.length === 0) {
-      return {
-        ...output,
-        sourceLinks: [
-          'https://www.mayoclinic.org/search/search-results?q=' + encodeURIComponent(input.topic),
-          'https://medlineplus.gov/search.html?query=' + encodeURIComponent(input.topic),
-        ]
-      }
-    }
-    return output;
-  }
-);

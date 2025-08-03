@@ -13,6 +13,7 @@ import {
   Pill,
   ShoppingCart,
   BrainCircuit,
+  BarChart3,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -35,8 +36,9 @@ import PrescriptionGenerator from './prescription-generator';
 import MedicineInfo from './medicine-info';
 import Pharmacy from './pharmacy';
 import MentalHealthCompanion from './mental-health-companion';
+import AIAnalyticsDashboard from './ai-analytics-dashboard';
 
-type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info' | 'pharmacy' | 'mental-health';
+type View = 'symptoms' | 'summarizer' | 'resources' | 'ai-doctor' | 'skin-lesion' | 'prescription' | 'medicine-info' | 'pharmacy' | 'mental-health' | 'ai-analytics';
 
 export function AppShell() {
   const [activeView, setActiveView] = React.useState<View>('symptoms');
@@ -61,6 +63,8 @@ export function AppShell() {
         return <Pharmacy />;
       case 'mental-health':
         return <MentalHealthCompanion />;
+      case 'ai-analytics':
+        return <AIAnalyticsDashboard />;
       default:
         return <SymptomAnalyzer />;
     }
@@ -161,6 +165,16 @@ export function AppShell() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
+                onClick={() => setActiveView('ai-analytics')}
+                isActive={activeView === 'ai-analytics'}
+                tooltip="AI Analytics"
+              >
+                <BarChart3 />
+                <span>AI Analytics</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
                 onClick={() => setActiveView('resources')}
                 isActive={activeView === 'resources'}
                 tooltip="Health Resources"
@@ -189,6 +203,7 @@ export function AppShell() {
               {activeView === 'resources' && 'Health Resources'}
               {activeView === 'ai-doctor' && 'AI Doctor'}
               {activeView === 'mental-health' && 'Mental Health Companion'}
+              {activeView === 'ai-analytics' && 'AI Analytics Dashboard'}
             </h1>
            </div>
         </header>

@@ -8,54 +8,75 @@
  * - MentalHealthAgentOutput - The return type for the talkToCompanion function.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
-const MentalHealthAgentInputSchema = z.object({
-  prompt: z.string().describe("The user's message to the companion."),
-  history: z.array(z.string()).describe("The recent conversation history."),
-});
-export type MentalHealthAgentInput = z.infer<typeof MentalHealthAgentInputSchema>;
+// Mental Health Agent with ML capabilities
+export async function mentalHealthAgent(input: {
+  prompt: string;
+  history?: string[];
+  userProfile?: any;
+}) {
+  const { prompt, history, userProfile } = input;
 
-const MentalHealthAgentOutputSchema = z.object({
-  response: z.string().describe("The companion's empathetic response."),
-  mood: z.enum(["Positive", "Negative", "Neutral", "Mixed"]).describe("The AI's assessment of the user's current mood based on the conversation."),
-});
-export type MentalHealthAgentOutput = z.infer<typeof MentalHealthAgentOutputSchema>;
+  const promptText = `
+You are a warm, empathetic, and non-judgmental AI mental health companion with advanced emotional intelligence capabilities.
 
-export async function talkToCompanion(input: MentalHealthAgentInput): Promise<MentalHealthAgentOutput> {
-  return mentalHealthAgentFlow(input);
+USER PROFILE:
+- Age: ${userProfile?.age || 'Not specified'}
+- Gender: ${userProfile?.gender || 'Not specified'}
+- Stress Level: ${userProfile?.stressLevel || 'Not specified'}
+- Sleep Quality: ${userProfile?.sleepQuality || 'Not specified'}
+
+CONVERSATION HISTORY:
+${history?.map(msg => `- ${msg}`).join('\n') || 'No previous conversation'}
+
+CURRENT MESSAGE: "${prompt}"
+
+Please provide comprehensive mental health support including:
+
+1. EMOTIONAL RESPONSE:
+   - Empathetic and supportive response
+   - Validation of feelings
+   - Gentle, reflective questions
+
+2. MOOD ASSESSMENT:
+   - Current emotional state analysis
+   - Stress level evaluation
+   - Mood trend identification
+
+3. COPING STRATEGIES:
+   - Practical stress management techniques
+   - Mindfulness exercises
+   - Lifestyle recommendations
+
+4. RECOMMENDATIONS:
+   - Self-care suggestions
+   - When to seek professional help
+   - Support resources
+
+Use evidence-based mental health principles and maintain a supportive, non-judgmental tone.
+`;
+
+  const response = await googleAI.generateText({
+    model: 'gemini-1.5-flash',
+    prompt: promptText,
+    temperature: 0.7,
+    maxTokens: 1000
+  });
+
+  const aiResponse = response.text();
+
+  // Parse structured response
+  const responseMatch = aiResponse.match(/EMOTIONAL RESPONSE:(.*?)(?=MOOD ASSESSMENT:|$)/s);
+  const moodMatch = aiResponse.match(/MOOD ASSESSMENT:(.*?)(?=COPING STRATEGIES:|$)/s);
+  const copingMatch = aiResponse.match(/COPING STRATEGIES:(.*?)(?=RECOMMENDATIONS:|$)/s);
+  const recommendationsMatch = aiResponse.match(/RECOMMENDATIONS:(.*?)$/s);
+
+  return {
+    response: responseMatch ? responseMatch[1].trim() : 'I hear you and I\'m here to support you.',
+    mood: moodMatch && moodMatch[1].includes('negative') ? 'Negative' : 'Neutral',
+    stressLevel: userProfile?.stressLevel || 'Medium',
+    recommendations: recommendationsMatch ? recommendationsMatch[1].trim().split('\n').filter(Boolean) : [],
+    copingStrategies: copingMatch ? copingMatch[1].trim().split('\n').filter(Boolean) : []
+  };
 }
-
-const prompt = ai.definePrompt({
-  name: 'mentalHealthPrompt',
-  input: { schema: MentalHealthAgentInputSchema },
-  output: { schema: MentalHealthAgentOutputSchema },
-  prompt: `You are a warm, empathetic, and non-judgmental AI mental health companion. You are not a therapist, but a supportive friend to talk to. Your goal is to listen, validate feelings, ask gentle, reflective questions, and offer encouragement.
-
-  Conversation History (for context, most recent message is last):
-  {{#each history}}
-  - {{{this}}}
-  {{/each}}
-  
-  User's latest message: "{{{prompt}}}"
-
-  Based on the conversation, provide a supportive and caring response. Keep your response concise, 2-4 sentences. Ask an open-ended, reflective question if it feels natural, but don't force it. Do not give medical advice. Also, assess the user's current mood based on their message and the history.
-  `,
-});
-
-
-const mentalHealthAgentFlow = ai.defineFlow(
-  {
-    name: 'mentalHealthAgentFlow',
-    inputSchema: MentalHealthAgentInputSchema,
-    outputSchema: MentalHealthAgentOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input);
-    if (!output) {
-      throw new Error('Failed to get a response from the companion.');
-    }
-    return output;
-  }
-);

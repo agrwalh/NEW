@@ -1,28 +1,20 @@
 
 'use server';
 
-import { analyzeSymptoms } from '@/ai/flows/symptom-analyzer';
-import type { SymptomAnalyzerOutput } from '@/ai/flows/symptom-analyzer';
+import { symptomAnalyzer } from '@/ai/flows/symptom-analyzer';
 import { medicalSummarizer } from '@/ai/flows/medical-summarizer';
-import type { MedicalSummarizerOutput } from '@/ai/flows/medical-summarizer';
-import { talkToDoctor } from '@/ai/flows/doctor-agent';
-import type { DoctorAgentOutput } from '@/ai/flows/doctor-agent';
-import { analyzeSkinLesion } from '@/ai/flows/skin-lesion-analyzer';
-import type { SkinLesionAnalyzerOutput } from '@/ai/flows/skin-lesion-analyzer';
-import { generatePrescription } from '@/ai/flows/prescription-generator';
-import type { PrescriptionGeneratorInput, PrescriptionGeneratorOutput } from '@/ai/flows/prescription-generator';
-import { getMedicineInfo } from '@/ai/flows/medicine-info';
-import type { MedicineInfoOutput } from '@/ai/flows/medicine-info';
-import { talkToCompanion } from '@/ai/flows/mental-health-agent';
-import type { MentalHealthAgentOutput } from '@/ai/flows/mental-health-agent';
+import { doctorAgent } from '@/ai/flows/doctor-agent';
+import { skinLesionAnalyzer } from '@/ai/flows/skin-lesion-analyzer';
+import { prescriptionGenerator } from '@/ai/flows/prescription-generator';
+import { medicineInfo } from '@/ai/flows/medicine-info';
+import { mentalHealthAgent } from '@/ai/flows/mental-health-agent';
 
-
-export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: SymptomAnalyzerOutput; error?: string }> {
+export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: any; error?: string }> {
   if (!symptoms || symptoms.trim().length < 10) {
     return { error: 'Please describe your symptoms in at least 10 characters.' };
   }
   try {
-    const result = await analyzeSymptoms({ symptoms });
+    const result = await symptomAnalyzer({ symptoms });
     return { data: result };
   } catch (e) {
     console.error(e);
@@ -30,8 +22,7 @@ export async function analyzeSymptomsAction(symptoms: string): Promise<{ data?: 
   }
 }
 
-
-export async function summarizeTopicAction(topic: string): Promise<{ data?: MedicalSummarizerOutput; error?: string }> {
+export async function summarizeTopicAction(topic: string): Promise<{ data?: any; error?: string }> {
   if (!topic || topic.trim().length < 3) {
     return { error: 'Please enter a topic with at least 3 characters.' };
   }
@@ -44,12 +35,12 @@ export async function summarizeTopicAction(topic: string): Promise<{ data?: Medi
   }
 }
 
-export async function talkToDoctorAction(prompt: string): Promise<{ data?: DoctorAgentOutput; error?: string }> {
-  if (!prompt || prompt.trim().length === 0) {
+export async function talkToDoctorAction(userMessage: string, userProfile?: any, conversationHistory?: any[]): Promise<{ data?: any; error?: string }> {
+  if (!userMessage || userMessage.trim().length === 0) {
     return { error: 'Please say something to the doctor.' };
   }
   try {
-    const result = await talkToDoctor({ prompt });
+    const result = await doctorAgent({ userMessage, userProfile, conversationHistory });
     return { data: result };
   } catch (e) {
     console.error(e);
@@ -57,12 +48,12 @@ export async function talkToDoctorAction(prompt: string): Promise<{ data?: Docto
   }
 }
 
-export async function analyzeSkinLesionAction(photoDataUri: string): Promise<{ data?: SkinLesionAnalyzerOutput; error?: string }> {
-  if (!photoDataUri) {
+export async function analyzeSkinLesionAction(image: string, patientInfo?: any): Promise<{ data?: any; error?: string }> {
+  if (!image) {
     return { error: 'Please upload an image.' };
   }
   try {
-    const result = await analyzeSkinLesion({ photoDataUri });
+    const result = await skinLesionAnalyzer({ image, patientInfo });
     return { data: result };
   } catch (e) {
     console.error(e);
@@ -70,9 +61,9 @@ export async function analyzeSkinLesionAction(photoDataUri: string): Promise<{ d
   }
 }
 
-export async function generatePrescriptionAction(input: PrescriptionGeneratorInput): Promise<{ data?: PrescriptionGeneratorOutput; error?: string }> {
+export async function generatePrescriptionAction(input: any): Promise<{ data?: any; error?: string }> {
   try {
-    const result = await generatePrescription(input);
+    const result = await prescriptionGenerator(input);
     return { data: result };
   } catch (e) {
     console.error(e);
@@ -80,12 +71,12 @@ export async function generatePrescriptionAction(input: PrescriptionGeneratorInp
   }
 }
 
-export async function getMedicineInfoAction(medicineName: string): Promise<{ data?: MedicineInfoOutput; error?: string }> {
+export async function getMedicineInfoAction(medicineName: string, patientProfile?: any, query?: string): Promise<{ data?: any; error?: string }> {
   if (!medicineName || medicineName.trim().length < 2) {
     return { error: 'Please enter a medicine name with at least 2 characters.' };
   }
   try {
-    const result = await getMedicineInfo({ medicineName });
+    const result = await medicineInfo({ medicineName, patientProfile, query });
     return { data: result };
   } catch (e) {
     console.error(e);
@@ -93,12 +84,12 @@ export async function getMedicineInfoAction(medicineName: string): Promise<{ dat
   }
 }
 
-export async function talkToCompanionAction(prompt: string, history: string[]): Promise<{ data?: MentalHealthAgentOutput; error?: string }> {
+export async function talkToCompanionAction(prompt: string, history: string[]): Promise<{ data?: any; error?: string }> {
   if (!prompt || prompt.trim().length === 0) {
     return { error: 'Please say something.' };
   }
   try {
-    const result = await talkToCompanion({ prompt, history });
+    const result = await mentalHealthAgent({ prompt, history });
     return { data: result };
   } catch (e) {
     console.error(e);
